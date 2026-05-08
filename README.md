@@ -1,46 +1,92 @@
-# Getting Started with Create React App
+# home-wiki-frontend
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+React 19 SPA frontend for a personal home management knowledge base.
 
-## Available Scripts
+## Tech Stack
 
-In the project directory, you can run:
+| | |
+|---|---|
+| Framework | React 19, TypeScript |
+| UI | Material UI v6 |
+| State | Redux Toolkit 2.6 |
+| Routing | React Router v7 |
+| Forms | react-hook-form |
+| HTTP | Axios with interceptor |
 
-### `npm start`
+## Project Structure
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+```
+src/
+├── api/            # axiosClient.ts + service classes
+├── components/     # Reusable: Article/, Category/, Tag/, Layout/, Sidebar/, Auth/
+├── hooks/          # useAuth (mocked), useCategories, useTags
+├── pages/          # Route-level components
+├── redux/          # store.ts + slices/ (auth, articles, categories, tags)
+├── services/       # firebase.ts (fully mocked)
+├── types/          # TypeScript interfaces
+└── App.tsx         # Router + routes
+```
 
-The page will reload if you make edits.\
-You will also see any lint errors in the console.
+## Running Locally
 
-### `npm test`
+```bash
+npm install
+npm start
+```
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+By default the app points to the Azure backend (`https://homewiki.azurewebsites.net`).
+To use a local or VPS backend, create a `.env` file:
 
-### `npm run build`
+```
+REACT_APP_API_URL=https://localhost:7xxx
+```
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+> **Note:** `REACT_APP_API_URL` is baked into the bundle at build time, not at runtime. If you change it, you must rebuild.
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+## Routes
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+| Path | Component |
+|---|---|
+| `/` | MainPage |
+| `/articles` | Articles (search + pagination) |
+| `/articles/:id` | ArticleDetails |
+| `/articles/:id/edit` | EditArticle |
+| `/articles/create` | CreateArticle |
+| `/categories` | Categories |
+| `/categories/:id` | CategoryArticles |
+| `/tags` | Tags |
+| `/tags/:id` | TagArticles |
+| `/search` | Search |
 
-### `npm run eject`
+## Redux
 
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
+Four slices: `auth`, `articles`, `categories`, `tags`.
+Use typed hooks from `src/redux/hooks.ts`: `useAppSelector`, `useAppDispatch`.
 
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+## Authentication
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
+Auth is currently **disabled / mocked**:
+- `src/hooks/useAuth.ts` returns a hardcoded mock user
+- `src/services/firebase.ts` is fully stubbed
+- Redux authSlice and JWT logic exist but the backend has no auth endpoints
 
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
+## Docker / VPS Deployment
 
-## Learn More
+The frontend is built and served via nginx inside a Docker container.
+It is orchestrated by `docker-compose.yml` in the `home-wiki-backend` repository.
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+To rebuild with a custom API URL:
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+```bash
+# Set the correct URL before building
+echo "REACT_APP_API_URL=https://wiki.yourdomain.com" > .env
+docker compose -f /opt/home-wiki/home-wiki-backend/docker-compose.yml build wiki-frontend
+docker compose -f /opt/home-wiki/home-wiki-backend/docker-compose.yml up -d
+```
+
+## Known Tech Debt
+
+1. `Articles.tsx:60` — hardcoded Azure URL instead of `axiosClient`
+2. Duplicate page files: `src/pages/Articles.tsx` vs `src/pages/Article/Articles.tsx` — router uses top-level ones
+3. `redux-persist` in `package.json` but not wired up in the store
+4. Some pages use raw `axios` instead of service classes
